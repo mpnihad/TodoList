@@ -1,0 +1,23 @@
+PODS:
+  - ChameleonFramework/Default (2.1.0)
+  - ChameleonFramework/Swift (2.1.0):
+    - ChameleonFramework/Default
+
+DEPENDENCIES:
+  - ChameleonFramework/Swift (from `https://github.com/luckychris/Chameleon.git`)
+
+EXTERNAL SOURCES:
+  ChameleonFramework:
+    :git: https://github.com/luckychris/Chameleon.git
+
+CHECKOUT OPTIONS:
+  ChameleonFramework:
+    :commit: 347fcaa815f60281f9fbd32620c42d384dfc9b44
+    :git: https://github.com/luckychris/Chameleon.git
+
+SPEC CHECKSUMS:
+  ChameleonFramework: d21a3cc247abfe5e37609a283a8238b03575cf64
+
+PODFILE CHECKSUM: b1f0d578a0d7cbbd94af9acfb7e60880917c31ac
+
+COCOAPODS: 1.11.3
