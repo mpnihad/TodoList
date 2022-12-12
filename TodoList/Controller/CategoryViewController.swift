@@ -6,10 +6,15 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
+import SwipeCellKit
+import ChameleonFramework
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeTableViewController {
     
+    
+    
+
     
     
     var categoryBrain = CategoryBrain()
@@ -25,16 +30,19 @@ class CategoryViewController: UITableViewController {
         
         let action = UIAlertAction (title: "Add Item", style: .default){ action in
             
-            self.categoryBrain.addItem(name:  textField.text){ [weak self] in
+            
+            
+            self.categoryBrain.addItem(name: textField.text) { category in
                 
                 DispatchQueue.main.async {
                     
                     
-                    self?.tableView.reloadData()
+                    self.tableView.reloadData()
                     
                     
-                    self?.saveItem()
+                    self.saveItem(category: category)
                 }}
+            
             
             
             
@@ -63,13 +71,43 @@ class CategoryViewController: UITableViewController {
             tableView.reloadData()
         }
         
+        
+        
     }
     
+    override func viewWillAppear(_ animation:Bool)
+    {
+        guard let navBar = navigationController?.navigationBar else {
+            fatalError("Nav error -- Not found")
+        }
+        
+        
+        let appearance = UINavigationBarAppearance()
+        appearance.backgroundColor = UIColor(hexString : "1D9BF6")
+        
+        navBar.scrollEdgeAppearance = appearance
+        
+        
+    }
     
     
     func loadData(){
         
     }
+    
+    
+    override func updateModels(at indexPath: IndexPath) {
+        self.categoryBrain.deleteItem(at: indexPath.row){
+            DispatchQueue.main.async {
+
+
+                self.tableView.reloadData()
+            }
+        }
+        
+    }
+   
+    
     
     
 }
@@ -79,10 +117,13 @@ extension CategoryViewController {
     
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryItem", for: indexPath)
-        let item = categoryBrain.categoryItems[indexPath.row]
-        cell.textLabel?.text = item.name
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
+        let item = categoryBrain.categoryItems?[indexPath.row]
+        cell.textLabel?.text = item?.name ?? "No Categories added"
         //        cell.accessoryType = item.isChecked ? .checkmark : .none
+        
+        cell.backgroundColor = UIColor(hexString:item?.color ?? "ffffff") 
+        
         
         return cell
         
@@ -90,18 +131,21 @@ extension CategoryViewController {
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categoryBrain.categoryItems.count
+        return categoryBrain.categoryItems?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
 //        if let selectedCategory = categoryBrain.categoryItems[indexPath.row]{
-            categoryBrain.selectedCategory = categoryBrain.categoryItems[indexPath.row]
+            categoryBrain.selectedCategory = categoryBrain.categoryItems?[indexPath.row]
             performSegue(withIdentifier: "GotoItemsView", sender: self)
 //        }
        
         
     }
+    
+    
+  
     
     
 }
@@ -128,11 +172,13 @@ extension CategoryViewController {
     
     
     
-    func saveItem() {
+    func saveItem(category: Category) {
         
         do{
             
-            try categoryBrain.context.save()
+            try categoryBrain.realm.write(){
+                categoryBrain.realm.add(category)
+            }
             
         }
         catch {
@@ -144,7 +190,8 @@ extension CategoryViewController {
     }
     
     
+   
+
+    
+    
 }
-
-
-

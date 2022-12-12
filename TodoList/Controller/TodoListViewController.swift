@@ -6,13 +6,15 @@
 //
 
 import UIKit
-import CoreData
+import ChameleonFramework
 
-class TodoListViewController: UITableViewController {
+
+class TodoListViewController: SwipeTableViewController {
     
     
     @IBOutlet weak var searchBar: UISearchBar!
     
+  
     
     
     var todoBrain = TodoBrain()
@@ -36,8 +38,7 @@ class TodoListViewController: UITableViewController {
     
     
     
-    
-    
+   
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -47,14 +48,45 @@ class TodoListViewController: UITableViewController {
         
         searchBar.delegate = self
         
+    
+        
+       
+        
+        
         
         
         
         
         //        if let items =  (defaults.object(forKey: "TodoListArray")) as? [Item] {
-        //            todoBrain.itemArray = items
+        //            todoBrain.todoItems = items
         //
         //        }
+    }
+    
+    
+    override func viewWillAppear(_ animated:Bool)
+    {
+        if let colors = todoBrain.categoryName?.color{
+            
+            
+            guard let navBar = navigationController?.navigationBar else {
+                fatalError("Nav error -- Not found")
+            }
+            
+            if let color = UIColor(hexString: colors){
+                
+//                navBar.barTintColor = color
+                navBar.tintColor = ContrastColorOf(color, returnFlat: true)
+                searchBar.barTintColor = color
+                searchBar.tintColor = ContrastColorOf(color, returnFlat: true)
+                navBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.blue]
+                
+                let appearance = UINavigationBarAppearance()
+                appearance.backgroundColor = color
+                navBar.scrollEdgeAppearance = appearance
+            }
+        }
+       
     }
     
     
@@ -66,15 +98,23 @@ class TodoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
         
-        return todoBrain.itemArray.count
+        return todoBrain.todoItems?.count ?? 1
     }
     
     
+   
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
-        let item = todoBrain.itemArray[indexPath.row]
-        cell.textLabel?.text = item.title
-        cell.accessoryType = item.isChecked ? .checkmark : .none
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
+
+        let item = todoBrain.todoItems?[indexPath.row]
+        cell.textLabel?.text = item?.title ?? "No title"
+        cell.accessoryType = ( item?.isChecked ?? false) ? .checkmark : .none
+        let color = UIColor(hexString: todoBrain.categoryName?.color ?? "ffffff")!.lighten(byPercentage:CGFloat(indexPath.row)/CGFloat(todoBrain.todoItems!.count))!
+        
+        cell.backgroundColor = color
+        cell.textLabel?.textColor = ContrastColorOf(color , returnFlat: true)
+//        UIColor(hexString: todoBrain.categoryName?.color ?? "ffffff")?(byPercentage:CGFloat(indexPath.row+1)/CGFloat(todoBrain.todoItems!.count))
+//        cell.backgroundColor = UIColor(hexColor:)
         
         return cell
     }
@@ -92,16 +132,18 @@ class TodoListViewController: UITableViewController {
                 
                 
                 
-                let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
-                
-                cell.accessoryType =  self?.todoBrain.itemArray[indexPath.row].isChecked ?? false ? .checkmark : .none
+                let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
                 
                 
+                cell.accessoryType =  (self?.todoBrain.todoItems?[indexPath.row].isChecked ?? false) ? .checkmark : .none
                 
-                //        context.delete(todoBrain.itemArray[indexPath.row])
-                //        todoBrain.itemArray.remove(at: indexPath.row)
                 
-                self?.saveItem()
+                tableView.reloadData()
+                
+                //        context.delete(todoBrain.todoItems[indexPath.row])
+                //        todoBrain.todoItems.remove(at: indexPath.row)
+//                
+//                self?.saveItem()
                 
                 
                 tableView.deselectRow(at: indexPath, animated: true)
@@ -109,6 +151,19 @@ class TodoListViewController: UITableViewController {
         }
         
     }
+    
+    override func updateModels(at indexPath: IndexPath) {
+        self.todoBrain.deleteItem(at: indexPath.row){
+            DispatchQueue.main.async {
+
+
+                self.tableView.reloadData()
+            }
+        }
+        
+    }
+   
+    
     
     
     //MARK: - Add New Item
@@ -118,7 +173,7 @@ class TodoListViewController: UITableViewController {
     //        let encoder = PropertyListEncoder()
     //
     //        do{
-    //            let data = try encoder.encode(self.todoBrain.itemArray)
+    //            let data = try encoder.encode(self.todoBrain.todoItems)
     //
     //            if let filePath = self.dataFilePath {
     //                try data.write(to: filePath)
@@ -142,7 +197,7 @@ class TodoListViewController: UITableViewController {
     //                let datas = try? Data(contentsOf: filePath)
     //                item(context:self.context)
     //                if let data = datas{
-    //                    todoBrain.itemArray =  try decoder.decode([Item].self, from: data)
+    //                    todoBrain.todoItems =  try decoder.decode([Item].self, from: data)
     //                }
     //
     //            }
@@ -173,7 +228,6 @@ class TodoListViewController: UITableViewController {
                     self?.tableView.reloadData()
                     
                     
-                    self?.saveItem()
                 }
             }
             //            if let item ={
@@ -183,7 +237,7 @@ class TodoListViewController: UITableViewController {
             //
             //
             //
-            //                //                self.defaults.setValue(self.todoBrain.itemArray, forKey: "TodoListArray")
+            //                //                self.defaults.setValue(self.todoBrain.todoItems, forKey: "TodoListArray")
             //            }
             
             
@@ -215,18 +269,25 @@ extension TodoListViewController : UISearchBarDelegate {
     
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         
-        let request : NSFetchRequest<TodoListItem> = TodoListItem.fetchRequest()
         
-        let predicateItem  = NSPredicate(format: "title CONTAINS[cd] %@ ", searchBar.text ?? "")
+        todoBrain.todoItems = todoBrain.todoItems?.filter("title CONTAINS[cd] %@ ", searchBar.text ?? "").sorted(byKeyPath: "date",ascending: false
+    )
+        DispatchQueue.main.async {
+                        self.tableView.reloadData()
+                    }
         
-        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-        
-        todoBrain.loadItems(with : request,predicate : predicateItem){
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
-            
-        }
+//        let request : NSFetchRequest<TodoListItem> = TodoListItem.fetchRequest()
+//        
+//        let predicateItem  = NSPredicate(format: "title CONTAINS[cd] %@ ", searchBar.text ?? "")
+//        
+//        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+//        
+//        todoBrain.loadItems(with : request,predicate : predicateItem){
+//            DispatchQueue.main.async {
+//                self.tableView.reloadData()
+//            }
+//
+//        }
         
     }
     //    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
@@ -239,12 +300,19 @@ extension TodoListViewController : UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         
         if searchBar.text?.count == 0 {
-            todoBrain.loadItems(){
+         
+            todoBrain.loadItems() {
                 DispatchQueue.main.async {
-                    
+
                     self.tableView.reloadData()
                 }
             }
+//            todoBrain.loadItems(){
+//                DispatchQueue.main.async {
+//
+//                    self.tableView.reloadData()
+//                }
+//            }
             
             DispatchQueue.main.async {
                 searchBar.resignFirstResponder()
@@ -265,22 +333,10 @@ extension TodoListViewController {
     
     
     
-    
-    func saveItem() {
-        
-        do{
-            
-            try todoBrain.context.save()
-            
-        }
-        catch {
-            
-            print("Error Saving \(error)")
-            
-        }
-        tableView.reloadData()
-    }
+   
     
     
 }
+
+
 

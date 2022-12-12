@@ -6,52 +6,81 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
+import ChameleonFramework
 
 
 struct CategoryBrain {
-    var categoryItems = [Category]()
     
-    var selectedCategory : Category = Category()
+    let realm = try! Realm()
     
-  
+    var categoryItems: Results<Category>?
+    
+    var selectedCategory : Category? = Category()
+    
+    
     
     var context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
-   
     
-    mutating func addItem(name : String?, callBack :() -> Void){
+    
+    mutating func addItem(name : String?, callBack :(Category) -> Void){
         if let name = name{
-            let newCategory = Category(context: self.context)
+            let newCategory = Category()
             newCategory.name = name
-            categoryItems.append(newCategory)
-            callBack()
+            newCategory.color = UIColor.randomFlat().hexValue()
+            callBack(newCategory)
         }
     }
     
-   
     
-   
     
-    mutating func loadItems(with request: NSFetchRequest<Category> = Category.fetchRequest(),callback: () -> Void) {
+    
+    
+    mutating func loadItems(callback: () -> Void) {
         
         
-        do{
-            
-            
-           
-          
-            categoryItems = try context.fetch(request) as [Category]
-          
-            
-            
-        }
-        catch{
-            print("Error \(error)")
-            
-        }
+        
+        
+        
+        
+        categoryItems = realm.objects(Category.self)
+        
+        
+        
     }
+    
+
+
+func deleteItem(at row: Int,callback: () -> Void){
+    do {
+        if let category = categoryItems?[row]{
+            try realm.write {
+                
+                     realm.delete(category)
+               
+                
+                
+                
+                callback()
+                
+            }
+            
+        }
+        
+        
+    }
+    catch{
+        
+    }
+    
 }
+}
+
+
+
+
+
 
 
 

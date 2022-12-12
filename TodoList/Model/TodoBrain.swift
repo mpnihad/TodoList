@@ -7,33 +7,59 @@
 
 import UIKit
 import CoreData
+import RealmSwift
 
 struct TodoBrain {
-    var itemArray = [TodoListItem]()
+    
+    
+    var todoItems : Results<TodoListItem>?
+    
+    let realm = try! Realm()
+    
     var context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     var categoryName : Category? = nil
     
     mutating func addItem(name : String?, callBack :() -> Void){
         if let name = name, let categoryNam = categoryName{
-            let newItem = TodoListItem(context: self.context)
-            newItem.title = name
-            newItem.isChecked = false
-            newItem.parentCategory = categoryNam
-            itemArray.append(newItem)
-            callBack()
+            
+            do {
+                try realm.write {
+                    let newItem = TodoListItem()
+                    newItem.title = name
+                    newItem.isChecked = false
+                    newItem.date = Date.now
+                    categoryNam.item.append(newItem)
+                }
+                callBack()
+            } catch  {
+                print("Error \(error.localizedDescription)")
+            }
+            
         }
     }
     
     mutating func selectOrDeselectItem (at row: Int, callBack :() -> Void) {
-        itemArray[row].isChecked = !itemArray[row].isChecked
-        callBack();
+        
+        do {
+            try realm.write{
+                todoItems?[row].isChecked = !(todoItems?[row].isChecked ?? false)
+                callBack()
+            }
+        } catch  {
+            print("error \(error.localizedDescription)")
+            
+        }
+        
+        
         
     }
     
-   
     
-    mutating func loadItems(with request: NSFetchRequest<TodoListItem> = TodoListItem.fetchRequest(), category:Category? = nil, predicate:NSPredicate? = nil, callback: () -> Void) {
+    
+    mutating func loadItems( category : Category? = nil,callback: () -> Void) {
+        
+        
         
         if let categorys = category{
             
@@ -41,32 +67,35 @@ struct TodoBrain {
         }
         
         
-        
-        let categoryPredicate  = NSPredicate(format: "parentCategory.name MATCHES %@", categoryName!.name!)
-        let compoundPredicate = predicate != nil ? NSCompoundPredicate(andPredicateWithSubpredicates: [predicate!,categoryPredicate]) : NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate])
-//
-        
-        request.predicate = compoundPredicate
+        print(categoryName)
         
         
-        do{
-           
-            
-            
-            
-            itemArray = try context.fetch(request) as [TodoListItem]
-          
+        todoItems = categoryName?.item.sorted(byKeyPath: "title",ascending: true)
+        
+        callback()
+        
+    }
+    
+     func deleteItem(at row: Int,callback: () -> Void){
+        do {
+            if let item = todoItems?[row]{
+                try realm.write {
+                    try realm.delete(item)
+                    
+                    
+                    
+                    callback()
+                    
+                }
                 
-                
-                callback()
-            
+            }
             
             
         }
         catch{
-            print("Error \(error)")
             
         }
+        
     }
 }
 

@@ -11,7 +11,8 @@ import RealmSwift
 class TodoListItem : Object {
     @objc dynamic var title : String = ""
     @objc dynamic var isChecked : Bool = false
+    @objc dynamic var date : Date = Date.now
     
-//    var parentCategory = LinkingObjects
+    var parentCategory = LinkingObjects(fromType: Category.self, property: "item")
     
 }

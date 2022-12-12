@@ -22,18 +22,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
        
 //          print(dataFilePath)
         
-        print(Realm.Configuration.defaultConfiguration.fileURL)
+//        print(Realm.Configuration.defaultConfiguration.fileURL)
        
-        let data = Data()
-        data.name = "Nihad"
-        data.age = 12
-        
+       
     
         do {
-            let realm  = try Realm()
-            try realm.write {
-                realm.add(data)
-            }
+            let _  = try Realm()
+            
         } catch  {
             print("Realm error  \(error.localizedDescription)")
         }
